@@ -3,10 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Page</title>
+    <title>Bill Splitter Calculator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Link to Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* Custom font for Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px; /* Add some padding for smaller screens */
+            box-sizing: border-box; /* Ensure padding is included in total width/height */
+        }
+        .calculator-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05); /* Softer shadow */
+            padding: 2.5rem; /* Increased padding */
+            max-width: 450px; /* Slightly wider */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; /* Space between sections */
+        }
+        .input-group label {
+            font-weight: 600; /* Semi-bold label */
+            color: #374151; /* Darker gray for labels */
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .input-group input[type="number"],
+        .input-group select { /* Apply similar styles to select for consistency */
+            width: 100%;
+            padding: 0.75rem 1rem; /* Comfortable padding */
+            border: 2px solid #d1d5db; /* Light gray border */
+            border-radius: 0.75rem; /* Rounded input fields */
+            font-size: 1rem;
+            color: #1f2937; /* Dark text */
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            outline: none;
+            -webkit-appearance: none; /* Remove default select styling for custom arrow */
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Make space for the arrow */
+        }
+        .input-group input[type="number"]:focus,
+        .input-group select:focus {
+            border-color: #6366f1; /* Indigo on focus */
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* Soft focus ring */
+        }
+        .result-display {
+            background-color: #e0e7ff; /* Light indigo background for results */
+            border-radius: 1rem; /* Rounded corners for result box */
+            padding: 1.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem; /* Space between result lines */
+            border: 1px solid #c7d2fe; /* Subtle border */
+        }
+        .result-display p {
+            font-size: 1rem;
+            color: #4b5563; /* Medium gray text */
+        }
+        .result-display .amount {
+            font-size: 1.75rem; /* Larger amount */
+            font-weight: 700; /* Bold amount */
+            color: #4f46e5; /* Deeper indigo for amounts */
+        }
+        .calculate-button, .insights-button {
+            background-color: #4f46e5; /* Deep indigo button */
+            color: #ffffff;
+            padding: 0.85rem 1.5rem;
+            border-radius: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            width: 100%;
+        }
+        .calculate-button:hover, .insights-button:hover {
+            background-color: #4338ca; /* Slightly darker indigo on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+        .calculate-button:active, .insights-button:active {
+            background-color: #3730a3; /* Even darker on active */
+            transform: translateY(0);
+        }
+        /* Style for error message */
+        #errorMessage {
+            color: #dc2626; /* Red text for errors */
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            text-align: center;
+            display: none; /* Hidden by default */
+        }
+        .insights-display {
+            background-color: #f0f9ff; /* Very light blue background for insights */
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid #bae6fd; /* Light blue border */
+            color: #0c4a6e; /* Darker blue text */
+            font-size: 0.95rem;
+            line-height: 1.5;
+            min-height: 50px; /* Minimum height to avoid collapse */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-wrap: break-word; /* Ensure text wraps */
+        }
+        .insights-display.loading::before {
+            content: 'Generating insights...';
+            color: #6b7280;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello, GitHub Pages!</h1>
-    <p>If you see this, HTML is working.</p>
+    <div class="calculator-container">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Bill Splitter</h1>
+
+        <div class="input-group">
+            <label for="billAmount">Bill Amount:</label>
+            <input type="number" id="billAmount" placeholder="e.g., 100" min="0" value="0">
+        </div>
+
+        <div class="input-group">
+            <label for="currencySelect">Currency:</label>
+            <select id="currencySelect">
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+                <option value="GBP">£ GBP</option>
+                <option value="JPY">¥ JPY</option>
+                <option value="ZAR">R ZAR</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="numPeople">Number of People:</label>
+            <input type="number" id="numPeople" placeholder="e.g., 2" min="1" value="1">
+        </div>
+
+        <div class="input-group">
+            <label for="tipPercentage">Tip Percentage (%):</label>
+            <input type="number" id="tipPercentage" placeholder="e.g., 15" min="0" value="15">
+        </div>
+
+        <button id="calculateBtn" class="calculate-button">Calculate</button>
+
+        <p id="errorMessage" class="hidden">Please enter valid numbers for all fields.</p>
+
+        <div class="result-display mt-4">
+            <p>Tip Amount: <span id="tipAmountDisplay" class="amount">$0.00</span></p>
+            <p>Total Per Person: <span id="totalPerPersonDisplay" class="amount">$0.00</span></p>
+        </div>
+
+        <button id="getInsightsBtn" class="insights-button mt-4">✨ Get Insights ✨</button>
+        <div id="insightsDisplay" class="insights-display">
+            <!-- Insights generated by LLM will appear here -->
+        </div>
+    </div>
+
+    <script>
+        // Get references to HTML elements
+        const billAmountInput = document.getElementById('billAmount');
+        const currencySelect = document.getElementById('currencySelect');
+        const numPeopleInput = document.getElementById('numPeople');
+        const tipPercentageInput = document.getElementById('tipPercentage');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const getInsightsBtn = document.getElementById('getInsightsBtn');
+        const tipAmountDisplay = document.getElementById('tipAmountDisplay');
+        const totalPerPersonDisplay = document.getElementById('totalPerPersonDisplay');
+        const errorMessage = document.getElementById('errorMessage');
+        const insightsDisplay = document.getElementById('insightsDisplay');
+
+        // Currency symbols mapping
+        const currencySymbols = {
+            "USD": "$",
+            "EUR": "€",
+            "GBP": "£",
+            "JPY": "¥",
+            "ZAR": "R"
+        };
+
+        /**
+         * Formats a number as a currency string with the selected symbol.
+         * @param {number} amount - The numeric amount to format.
+         * @returns {string} The formatted currency string.
+         */
+        function formatCurrency(amount) {
+            const selectedCurrency = currencySelect.value;
+            const symbol = currencySymbols[selectedCurrency] || "$"; // Default to $ if not found
+            return `${symbol}${amount.toFixed(2)}`;
+        }
+
+        /**
+         * Calculates and displays the bill split.
+         */
+        function calculateBill() {
+            // Get values from input fields and parse them as floats
+            const billAmount = parseFloat(billAmountInput.value);
+            const numPeople = parseInt(numPeopleInput.value, 10);
+            const tipPercentage = parseFloat(tipPercentageInput.value);
+            const selectedCurrency = currencySelect.value; // Get selected currency for display
+
+            // Validate inputs
+            if (isNaN(billAmount) || isNaN(numPeople) || isNaN(tipPercentage) || billAmount < 0 || numPeople <= 0 || tipPercentage < 0) {
+                errorMessage.style.display = 'block'; // Show error message
+                tipAmountDisplay.textContent = formatCurrency(0); // Show 0 with current currency
+                totalPerPersonDisplay.textContent = formatCurrency(0); // Show 0 with current currency
+                getInsightsBtn.disabled = true; // Disable insights button on invalid input
+                insightsDisplay.textContent = ''; // Clear insights
+                insightsDisplay.classList.remove('loading');
+                return; // Stop execution if inputs are invalid
+            } else {
+                errorMessage.style.display = 'none'; // Hide error message if inputs are valid
+                getInsightsBtn.disabled = false; // Enable insights button
+            }
+
+            // Calculate tip amount
+            const tipAmount = billAmount * (tipPercentage / 100);
+
+            // Calculate total bill with tip
+            const totalBillWithTip = billAmount + tipAmount;
+
+            // Calculate amount per person
+            const totalPerPerson = totalBillWithTip / numPeople;
+
+            // Update the display with calculated values, formatted to two decimal places and with currency symbol
+            tipAmountDisplay.textContent = formatCurrency(tipAmount);
+            totalPerPersonDisplay.textContent = formatCurrency(totalPerPerson);
+        }
+
+        /**
+         * Fetches insights from the Gemini API based on bill details.
+         */
+        async function getBillInsights() {
+            const billAmount = parseFloat(billAmountInput.value);
+            const numPeople = parseInt(numPeopleInput.value, 10);
+            const selectedCurrency = currencySelect.value;
+            const currencySymbol = currencySymbols[selectedCurrency] || "$";
+
+            // Basic validation before calling LLM
+            if (isNaN(billAmount) || isNaN(numPeople) || billAmount <= 0 || numPeople <= 0) {
+                insightsDisplay.textContent = 'Please enter a valid bill amount and number of people to get insights.';
+                insightsDisplay.classList.remove('loading');
+                return;
+            }
+
+            insightsDisplay.textContent = ''; // Clear previous insights
+            insightsDisplay.classList.add('loading'); // Show loading state
+            getInsightsBtn.disabled = true; // Disable button while loading
+
+            try {
+                const prompt = `Given a total bill amount of ${currencySymbol}${billAmount.toFixed(2)} and ${numPeople} people splitting it, provide a concise summary of what this outing might have been like and a general tip suggestion based on these numbers, assuming standard service. Keep the response to 2-3 sentences.`;
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // Canvas will provide this key at runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    insightsDisplay.textContent = text;
+                } else {
+                    insightsDisplay.textContent = 'Could not generate insights. Please try again.';
+                }
+            } catch (error) {
+                console.error('Error fetching insights:', error);
+                insightsDisplay.textContent = 'Error generating insights. Please check your connection.';
+            } finally {
+                insightsDisplay.classList.remove('loading'); // Hide loading state
+                getInsightsBtn.disabled = false; // Re-enable button
+            }
+        }
+
+        // Add event listener to the calculate button
+        calculateBtn.addEventListener('click', calculateBill);
+
+        // Add event listener to the get insights button
+        getInsightsBtn.addEventListener('click', getBillInsights);
+
+        // Add event listeners to input fields and currency select for real-time updates and to enable/disable insights button
+        billAmountInput.addEventListener('input', calculateBill);
+        currencySelect.addEventListener('change', calculateBill); // Listen for currency change
+        numPeopleInput.addEventListener('input', calculateBill);
+        tipPercentageInput.addEventListener('input', calculateBill);
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Dynamically determine the base path for Service Worker to handle GitHub Pages project sites
+                // This assumes the app is hosted at yourusername.github.io/your-repo-name/
+                const pathSegments = window.location.pathname.split('/');
+                // If it's a project page (e.g., /repo-name/), repoName will be /repo-name. Otherwise, it will be empty.
+                const repoName = pathSegments.length > 1 && pathSegments[1] !== '' ? `/${pathSegments[1]}` : '';
+                
+                const serviceWorkerScriptPath = `${repoName}/service-worker.js`;
+                const serviceWorkerScope = `${repoName}/`; // Scope should match the base path of your application
+
+                navigator.serviceWorker.register(serviceWorkerScriptPath, { scope: serviceWorkerScope })
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // Initial calculation and disable insights button when the page loads if inputs are invalid
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateBill(); // Perform initial calculation
+            // If calculateBill finds invalid inputs on load, it will disable getInsightsBtn
+        });
+    </script>
 </body>
 </html>
